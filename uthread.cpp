@@ -24,28 +24,8 @@ void uthread_resume(schedule_t &schedule , int id)
 
     uthread_t *t = &(schedule.threads[id]);
 
-    switch(t->state){
-        case RUNNABLE:
-            getcontext(&(t->ctx));
-    
-            t->ctx.uc_stack.ss_sp = t->stack;
-            t->ctx.uc_stack.ss_size = DEFAULT_STACK_SZIE;
-            t->ctx.uc_stack.ss_flags = 0;
-            t->ctx.uc_link = &(schedule.main);
-            t->state = RUNNING;
-
-            schedule.running_thread = id;
-
-            makecontext(&(t->ctx),(void (*)(void))(uthread_body),1,&schedule);
-            
-            /* !! note : Here does not need to break */
-
-        case SUSPEND:
-            
-            swapcontext(&(schedule.main),&(t->ctx));
-
-            break;
-        default: ;
+    if (t->state == SUSPEND) {
+        swapcontext(&(schedule.main),&(t->ctx));
     }
 }
 
@@ -69,6 +49,7 @@ void uthread_body(schedule_t *ps)
 
         t->func(t->arg);
 
+        t = &(ps->threads[id]);	// t地址可能会变化，因为threads是std::vector，增加元素会导致重新分配内存
         t->state = FREE;
         
         ps->running_thread = -1;
@@ -97,17 +78,17 @@ int uthread_create(schedule_t &schedule,Fun func,void *arg)
     t->func = func;
     t->arg = arg;
 
-/*
-//    这段代码以迁移到uthread_resume,初次使用在多个协程时会出现段错误
     getcontext(&(t->ctx));
     
     t->ctx.uc_stack.ss_sp = t->stack;
     t->ctx.uc_stack.ss_size = DEFAULT_STACK_SZIE;
     t->ctx.uc_stack.ss_flags = 0;
     t->ctx.uc_link = &(schedule.main);
-
+    schedule.running_thread = id;
+    
     makecontext(&(t->ctx),(void (*)(void))(uthread_body),1,&schedule);
-*/    
+    swapcontext(&(schedule.main), &(t->ctx));
+    
     return id;
 }
 
