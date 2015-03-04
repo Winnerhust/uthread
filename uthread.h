@@ -12,6 +12,10 @@
 #ifndef MY_UTHREAD_H
 #define MY_UTHREAD_H
 
+#ifdef __APPLE__
+#define _XOPEN_SOURCE
+#endif 
+
 #include <ucontext.h>
 #include <vector>
 
