@@ -20,6 +20,7 @@
 #include <vector>
 
 #define DEFAULT_STACK_SZIE (1024*128)
+#define MAX_UTHREAD_SIZE   1024
 
 enum ThreadState{FREE,RUNNABLE,RUNNING,SUSPEND};
 
@@ -36,15 +37,23 @@ typedef struct uthread_t
     char stack[DEFAULT_STACK_SZIE];
 }uthread_t;
 
-typedef std::vector<uthread_t> Thread_vector;
-
 typedef struct schedule_t
 {
     ucontext_t main;
     int running_thread;
-    Thread_vector threads;
+    uthread_t *threads;
+    int max_index; // 曾经使用到的最大的index + 1
 
-    schedule_t():running_thread(-1){}
+    schedule_t():running_thread(-1), max_index(0) {
+        threads = new uthread_t[MAX_UTHREAD_SIZE];
+        for (int i = 0; i < MAX_UTHREAD_SIZE; i++) {
+            threads[i].state = FREE;
+        }
+    }
+    
+    ~schedule_t() {
+        delete [] threads;
+    }
 }schedule_t;
 
 /*help the thread running in the schedule*/
