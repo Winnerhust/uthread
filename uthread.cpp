@@ -18,7 +18,7 @@
 
 void uthread_resume(schedule_t &schedule , int id)
 {
-    if(id < 0 || id >= schedule.threads.size()){
+    if(id < 0 || id >= schedule.max_index){
         return;
     }
 
@@ -49,7 +49,6 @@ void uthread_body(schedule_t *ps)
 
         t->func(t->arg);
 
-        t = &(ps->threads[id]);	// t地址可能会变化，因为threads是std::vector，增加元素会导致重新分配内存
         t->state = FREE;
         
         ps->running_thread = -1;
@@ -59,17 +58,15 @@ void uthread_body(schedule_t *ps)
 int uthread_create(schedule_t &schedule,Fun func,void *arg)
 {
     int id = 0;
-    int threadnum = schedule.threads.size();
     
-    for(id = 0; id < threadnum; ++id ){
+    for(id = 0; id < schedule.max_index; ++id ){
         if(schedule.threads[id].state == FREE){
             break;
         }
     }
     
-    if(id == threadnum){
-        uthread_t thread;
-        schedule.threads.push_back(thread);
+    if (id == schedule.max_index) {
+        schedule.max_index++;
     }
 
     uthread_t *t = &(schedule.threads[id]);
@@ -97,7 +94,7 @@ int schedule_finished(const schedule_t &schedule)
     if (schedule.running_thread != -1){
         return 0;
     }else{
-        for(int i = 0; i < schedule.threads.size(); ++i){
+        for(int i = 0; i < schedule.max_index; ++i){
             if(schedule.threads[i].state != FREE){
                 return 0;
             }
