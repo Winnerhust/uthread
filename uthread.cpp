@@ -18,34 +18,14 @@
 
 void uthread_resume(schedule_t &schedule , int id)
 {
-    if(id < 0 || id >= schedule.threads.size()){
+    if(id < 0 || id >= schedule.max_index){
         return;
     }
 
     uthread_t *t = &(schedule.threads[id]);
 
-    switch(t->state){
-        case RUNNABLE:
-            getcontext(&(t->ctx));
-    
-            t->ctx.uc_stack.ss_sp = t->stack;
-            t->ctx.uc_stack.ss_size = DEFAULT_STACK_SZIE;
-            t->ctx.uc_stack.ss_flags = 0;
-            t->ctx.uc_link = &(schedule.main);
-            t->state = RUNNING;
-
-            schedule.running_thread = id;
-
-            makecontext(&(t->ctx),(void (*)(void))(uthread_body),1,&schedule);
-            
-            /* !! note : Here does not need to break */
-
-        case SUSPEND:
-            
-            swapcontext(&(schedule.main),&(t->ctx));
-
-            break;
-        default: ;
+    if (t->state == SUSPEND) {
+        swapcontext(&(schedule.main),&(t->ctx));
     }
 }
 
@@ -78,17 +58,15 @@ void uthread_body(schedule_t *ps)
 int uthread_create(schedule_t &schedule,Fun func,void *arg)
 {
     int id = 0;
-    int threadnum = schedule.threads.size();
     
-    for(id = 0; id < threadnum; ++id ){
+    for(id = 0; id < schedule.max_index; ++id ){
         if(schedule.threads[id].state == FREE){
             break;
         }
     }
     
-    if(id == threadnum){
-        uthread_t thread;
-        schedule.threads.push_back(thread);
+    if (id == schedule.max_index) {
+        schedule.max_index++;
     }
 
     uthread_t *t = &(schedule.threads[id]);
@@ -97,17 +75,17 @@ int uthread_create(schedule_t &schedule,Fun func,void *arg)
     t->func = func;
     t->arg = arg;
 
-/*
-//    这段代码以迁移到uthread_resume,初次使用在多个协程时会出现段错误
     getcontext(&(t->ctx));
     
     t->ctx.uc_stack.ss_sp = t->stack;
     t->ctx.uc_stack.ss_size = DEFAULT_STACK_SZIE;
     t->ctx.uc_stack.ss_flags = 0;
     t->ctx.uc_link = &(schedule.main);
-
+    schedule.running_thread = id;
+    
     makecontext(&(t->ctx),(void (*)(void))(uthread_body),1,&schedule);
-*/    
+    swapcontext(&(schedule.main), &(t->ctx));
+    
     return id;
 }
 
@@ -116,7 +94,7 @@ int schedule_finished(const schedule_t &schedule)
     if (schedule.running_thread != -1){
         return 0;
     }else{
-        for(int i = 0; i < schedule.threads.size(); ++i){
+        for(int i = 0; i < schedule.max_index; ++i){
             if(schedule.threads[i].state != FREE){
                 return 0;
             }
