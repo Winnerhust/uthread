@@ -78,7 +78,7 @@ int uthread_create(schedule_t &schedule,Fun func,void *arg)
     getcontext(&(t->ctx));
     
     t->ctx.uc_stack.ss_sp = t->stack;
-    t->ctx.uc_stack.ss_size = DEFAULT_STACK_SZIE;
+    t->ctx.uc_stack.ss_size = DEFAULT_STACK_SIZE;
     t->ctx.uc_stack.ss_flags = 0;
     t->ctx.uc_link = &(schedule.main);
     schedule.running_thread = id;
