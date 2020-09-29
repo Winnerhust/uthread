@@ -19,7 +19,7 @@
 #include <ucontext.h>
 #include <vector>
 
-#define DEFAULT_STACK_SZIE (1024*128)
+#define DEFAULT_STACK_SIZE (1024*128)
 #define MAX_UTHREAD_SIZE   1024
 
 enum ThreadState{FREE,RUNNABLE,RUNNING,SUSPEND};
@@ -34,7 +34,7 @@ typedef struct uthread_t
     Fun func;
     void *arg;
     enum ThreadState state;
-    char stack[DEFAULT_STACK_SZIE];
+    char stack[DEFAULT_STACK_SIZE];
 }uthread_t;
 
 typedef struct schedule_t
